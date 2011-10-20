@@ -1,0 +1,28 @@
+Tab-Separated Values (TSV) to Comma-Separated Values Converter
+
+by William R. Fraser, 10/19/2011
+
+--
+
+Tab-separated values is how I'm going to refer to a simple file type for making
+tables, where the starts of each column are aligned visually, with whitespace.
+
+Example:
+
+State       Capitol         Biggest City
+Illinois    Springfield     Chicago
+Washington  Olympia         Seattle
+California  Sacramento      Los Angeles
+New York    New York        New York
+Louisiana   Baton Rouge     New Orleans
+
+Even though some cells have internal white space, the columns are easily
+identified because they're the only places where the whitespace vertically
+lines up for the entirity of the table.
+
+Note that "tab-separated" doesn't mean with literal tab characters.
+(In fact, in the current version, using tabs will mess it up.)
+
+This program takes a file with TSV data, and outputs CSV data, which is more
+easily read by other programs.
+
