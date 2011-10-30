@@ -4,6 +4,7 @@
  * by William R. Fraser, 10/19/2011
  */
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
@@ -78,7 +79,7 @@ void growbuf_free(growbuf* gb)
  * Returns:
  *  -1 * an errno.h error number. 0 on success.
  */
-int growbuf_append(growbuf* gb, void* buf, size_t len)
+int growbuf_append(growbuf* gb, const void* buf, size_t len)
 {
     if (NULL == gb) {
         return -EINVAL;
@@ -91,7 +92,7 @@ int growbuf_append(growbuf* gb, void* buf, size_t len)
 
         if (gb->size + len < GROWBUF_ALLOC_GRANULARITY) {
 
-            newsize = gb->size;
+            newsize = gb->allocated_size;
             while (newsize < gb->size + len) {
                 newsize *= 2;
             }
@@ -105,6 +106,7 @@ int growbuf_append(growbuf* gb, void* buf, size_t len)
 
         newbuf = realloc(gb->buf, newsize);
         if (NULL == newbuf) {
+            fprintf(stderr, "GROWBUF EXPANSION FAILED\n");
             return -ENOMEM;
         }
 
@@ -118,4 +120,9 @@ int growbuf_append(growbuf* gb, void* buf, size_t len)
     gb->size += len;
 
     return 0;
+}
+
+int growbuf_append_byte(growbuf* gb, char byte)
+{
+    return growbuf_append(gb, &byte, 1);
 }
