@@ -59,7 +59,7 @@ char* read_to_eol(FILE* input, size_t* bytes_read)
         growbuf_append(gb, buf, bytes_append);
 
         if (got_newline) {
-            DEBUG fprintf(stderr, "read %u bytes, newline after %u, rewinding %u\n", chunk_bytes_read, bytes_append, chunk_bytes_read-bytes_append);
+            DEBUG fprintf(stderr, "read %zu bytes, newline after %zu, rewinding %zu\n", chunk_bytes_read, bytes_append, chunk_bytes_read-bytes_append);
 
             fseek(input, -1 * (chunk_bytes_read - bytes_append - 1), SEEK_CUR);
             goto cleanup;
@@ -158,7 +158,7 @@ int main(int argc, char** argv)
     
     DEBUG
     for (size_t i = 0; i < num_fields; i++) {
-        fprintf(stderr, "field %u: %u\n", i, ((size_t*)field_lengths->buf)[i]);
+        fprintf(stderr, "field %zu: %zu\n", i, ((size_t*)field_lengths->buf)[i]);
     }
 
     fseek(input, 0, SEEK_SET);
@@ -179,7 +179,7 @@ int main(int argc, char** argv)
 
                 buf = read_to_eol(input, &bytes_read);
 
-                DEBUG fprintf(stderr, "got %u bytes to eol: ", bytes_read);
+                DEBUG fprintf(stderr, "got %zu bytes to eol: ", bytes_read);
                 DEBUG fwrite(buf, 1, bytes_read, stderr);
             }
             else {
@@ -192,7 +192,7 @@ int main(int argc, char** argv)
 
                 bytes_read = fread(buf, 1, field_len, input);
 
-                DEBUG fprintf(stderr, "got %u bytes: ", bytes_read);
+                DEBUG fprintf(stderr, "got %zu bytes: ", bytes_read);
                 DEBUG fwrite(buf, 1, bytes_read, stderr);
             }
 
@@ -213,7 +213,7 @@ int main(int argc, char** argv)
 
             trimmed_len = trimmed_length(buf, bytes_read);
 
-            DEBUG fprintf(stderr, "trimmed_len(%u)\n", trimmed_len);
+            DEBUG fprintf(stderr, "trimmed_len(%zu)\n", trimmed_len);
 
             //
             // write the csv field

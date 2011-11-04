@@ -100,7 +100,7 @@ size_t locate_field(FILE* input, size_t index, const growbuf* field_lengths)
                 if (buf[i] != ' ') {
                     field_len += i;
 
-                    DEBUG fprintf(stderr, "think field is length %u\n", field_len);
+                    DEBUG fprintf(stderr, "think field is length %zu\n", field_len);
 
                     break;
                 }
