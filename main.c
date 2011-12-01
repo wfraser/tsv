@@ -4,11 +4,14 @@
  * by William R. Fraser, 10/19/2011
  */
 
+#define _POSIX_C_SOURCE 200809L
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <unistd.h>
 #include <errno.h>
+#include <string.h>
 #include <sysexits.h>
 
 #include "growbuf.h"
@@ -23,7 +26,18 @@ const size_t initial_field_count = 10;
  */
 void usage()
 {
-    fprintf(stderr, "usage:\n\ttsv tab-delimited-input [+<start line>] > csv-output\n");
+    fprintf(stderr, "usage: tsv {tab-delimited-input} [+{start line}] [+notabs] [-t {tab-width}]\n"
+                    "         > csv-output\n"
+                    "\n"
+                    "use +{start-line} to indicate the line (1-based) on which TSV data starts.\n"
+                    "(default is 1)\n"
+                    "\n"
+                    "you can use +notabs if the TSV data contains no TAB characters (it uses all\n"
+                    "space characters for separation). This increases performance by reading directly\n"
+                    "from the input file, instead of converting to an all-spaces temp file first by\n"
+                    "default.\n"
+                    "(Note that with this option, the input must be a seekable stream. /dev/stdin\n"
+                    "will NOT work!)\n");
 }
 
 /**
@@ -113,6 +127,7 @@ int main(int argc, char** argv)
 {
     int         retval        = EX_OK;
     const char* inFilename    = NULL;
+    char        tempFilename[16] = "";
     FILE*       input         = NULL;
     FILE*       output        = stdout;
     growbuf*    field_lengths = NULL;
@@ -122,14 +137,37 @@ int main(int argc, char** argv)
     size_t      field_len     = 0;
     size_t      trimmed_len   = 0;
     size_t      start_line    = 1;
+    int         tab_width     = 8;
     long        file_startpos = 0;
+    bool        convert_tabs  = true;
 
     for (size_t i = 1; i < argc; i++) {
         if (NULL == inFilename) {
             inFilename = argv[i];
         }
         else if ('+' == argv[i][0]) {
-            start_line = atoi(argv[i]);
+            if (0 == strcmp("+notabs", argv[i])) {
+                convert_tabs = false;
+            }
+            else {
+               start_line = atoi(argv[i]);
+            }
+        }
+        else if (0 == strcmp("-t", argv[i])) {
+            if (i + 1 == argc) {
+                fprintf(stderr, "the -t flag requires an argument.\n");
+                retval = EX_USAGE;
+                goto cleanup;
+            }
+            
+            tab_width = atoi(argv[i+1]);
+            if (tab_width < 1) {
+                fprintf(stderr, "invalid tab width.\n");
+                retval = EX_USAGE;
+                goto cleanup;
+            }
+
+            i++;
         }
     }
 
@@ -150,6 +188,56 @@ int main(int argc, char** argv)
         perror("Error opening input stream");
         retval = EX_NOINPUT;
         goto cleanup;
+    }
+
+    if (convert_tabs) {
+        //
+        // Convert input file to an all space-separated temp file
+        //
+
+        int   fd         = -1;
+        FILE* tempOutput = NULL;
+
+        strncpy(tempFilename, "/tmp/tsv.XXXXXX", sizeof(tempFilename));
+        fd = mkstemp(tempFilename);
+        if (-1 == fd) {
+            perror("Error making temporary file");
+            retval = EX_OSERR;
+            goto cleanup;
+        }
+
+        DEBUG fprintf(stderr, "converting tabs to temp file %s\n", tempFilename);
+
+        tempOutput = fdopen(fd, "w");
+        if (NULL == tempOutput) {
+            perror("Error opening temp file");
+            retval = EX_OSERR;
+            goto cleanup;
+        }
+        
+        size_t i = 0;
+        int c;
+        while (EOF != (c = fgetc(input))) {
+            if ('\t' == c) {
+                for (size_t j = (i % tab_width); j < tab_width; j++) {
+                    fputc(' ', tempOutput);
+                    i++;
+                }
+            }
+            else {
+                if ('\n' == c) {
+                    i = 0;
+                }
+                else {
+                    i++;
+                }
+                fputc(c, tempOutput);
+            }
+        }
+
+        fclose(input);
+        fclose(tempOutput);
+        input = fopen(tempFilename, "r");
     }
 
     field_lengths = growbuf_create(initial_field_count * sizeof(size_t));
@@ -273,6 +361,10 @@ cleanup:
 
     if (NULL != buf) {
         free(buf);
+    }
+
+    if (convert_tabs) {
+        unlink(tempFilename);
     }
 
     return retval;
