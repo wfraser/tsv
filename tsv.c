@@ -57,8 +57,6 @@ size_t tsv_get_field_lengths(FILE* input, growbuf* field_lengths, long file_star
  */
 size_t locate_field(FILE* input, size_t index, const growbuf* field_lengths, long file_startpos)
 {
-    char buf[512];
-
     //
     // seek to the end of all the previous fields on the first line
     //
@@ -80,17 +78,17 @@ size_t locate_field(FILE* input, size_t index, const growbuf* field_lengths, lon
     bool found_field = false;
     size_t field_len = 0;
     while (!found_field) {
-        size_t bytes_read = fread(buf, 1, sizeof(buf), input);
-
-        if (0 == bytes_read) {
-            return 0;
-        }
 
         bool in_whitespace = false;
-        for (size_t i = 0; i < bytes_read; i++) {
+        while (true) {
+            int c = fgetc(input);
+
+            if (EOF == c) {
+                return 0;
+            }
             
             if (in_whitespace) {
-                if (buf[i] == '\n') {
+                if ('\n' == (char)c) {
                     // this is the last field
                     // special case, subsequent fields may be longer
                     // go with length of 0
@@ -100,16 +98,14 @@ size_t locate_field(FILE* input, size_t index, const growbuf* field_lengths, lon
                     return 0;
                 }
 
-                if (buf[i] != ' ') {
-                    field_len += i;
-
+                if (' ' != (char)c) {
                     DEBUG fprintf(stderr, "think field is length %zu\n", field_len);
 
                     break;
                 }
             }
             else {
-                if (buf[i] == '\n') {
+                if ('\n' == (char)c) {
                     // last field, see above
 
                     DEBUG fprintf(stderr, "hit end of line\n");
@@ -117,10 +113,12 @@ size_t locate_field(FILE* input, size_t index, const growbuf* field_lengths, lon
                     return 0;
                 }
 
-                if (buf[i] == ' ') {
+                if (' ' == (char)c) {
                     in_whitespace = true;
                 }
             }
+
+            field_len++;
         }
 
         //
