@@ -22,17 +22,18 @@ const size_t initial_col_count = 10;
  * Args:
  *  input           - file to read
  *  field_lengths   - initialized growbuf to store the lengths in (as size_t)
+ *  file_startpos   - position in the file where TSV data starts
  *
  * Returns:
  *  The number of fields in the file.
  */
-size_t tsv_get_field_lengths(FILE* input, growbuf* field_lengths)
+size_t tsv_get_field_lengths(FILE* input, growbuf* field_lengths, long file_startpos)
 {
     size_t num_fields = 0;
     size_t field_len  = 0;
 
     do {
-        field_len = locate_field(input, num_fields++, field_lengths);
+        field_len = locate_field(input, num_fields++, field_lengths, file_startpos);
         growbuf_append(field_lengths, (void*)&field_len, sizeof(size_t));
     } while (field_len != 0);
    
@@ -48,12 +49,13 @@ size_t tsv_get_field_lengths(FILE* input, growbuf* field_lengths)
  *  input           - file to read
  *  index           - index of the field to find
  *  field_lengths   - growbuf with the lengths of all the fields up to this one
+ *  file_startpos   - position in the file where TSV data starts
  *
  * Returns:
  *  Length of the field, or 0 if it is the last field (this means it continues
  *  to EOL).
  */
-size_t locate_field(FILE* input, size_t index, const growbuf* field_lengths)
+size_t locate_field(FILE* input, size_t index, const growbuf* field_lengths, long file_startpos)
 {
     char buf[512];
 
@@ -61,14 +63,15 @@ size_t locate_field(FILE* input, size_t index, const growbuf* field_lengths)
     // seek to the end of all the previous fields on the first line
     //
 
-    long startpos = 0;
+    long line_startpos = 0;
     for (size_t i = 0; i < index; i++) {
-        startpos += ((size_t*)field_lengths->buf)[i];
+        line_startpos += ((size_t*)field_lengths->buf)[i];
     }
 
-    DEBUG fprintf(stderr, "startpos: %ld\n", startpos);
+    DEBUG fprintf(stderr, "file start pos: %ld\n", file_startpos);
+    DEBUG fprintf(stderr, "line start pos: %ld\n", line_startpos);
 
-    fseek(input, startpos, SEEK_SET);
+    fseek(input, file_startpos + line_startpos, SEEK_SET);
 
     //
     // find a field on the first line
@@ -125,7 +128,7 @@ size_t locate_field(FILE* input, size_t index, const growbuf* field_lengths)
         //
 
         // reset pos to end of field
-        if (0 != fseek(input, startpos + field_len, SEEK_SET)) {
+        if (0 != fseek(input, file_startpos + line_startpos + field_len, SEEK_SET)) {
             perror("fseek");
             return 0;
         }
@@ -136,7 +139,7 @@ size_t locate_field(FILE* input, size_t index, const growbuf* field_lengths)
 
             //TODO: detect and ignore lines of all dashes or underscores here
             
-            fseek(input, startpos + field_len - 1, SEEK_CUR);
+            fseek(input, line_startpos + field_len - 1, SEEK_CUR);
 
             int c = fgetc(input);
             if (c != EOF && c != ' ') {
@@ -159,7 +162,7 @@ size_t locate_field(FILE* input, size_t index, const growbuf* field_lengths)
 
             if (again) {
                 // need to keep reading ahead for end of field
-                fseek(input, startpos + field_len, SEEK_SET);
+                fseek(input, file_startpos + line_startpos + field_len, SEEK_SET);
                 break;
             }
 

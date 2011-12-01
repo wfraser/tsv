@@ -4,6 +4,12 @@ by William R. Fraser, 10/19/2011
 
 --
 
+Usage: tsv {TSV input file} [+{start line number}] > {csv output}
+
+(note that the input file must be a seekable stream; /dev/stdin will NOT work)
+
+--
+
 Tab-separated values is how I'm going to refer to a simple file type for making
 tables, where the starts of each column are aligned visually, with whitespace.
 

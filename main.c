@@ -23,7 +23,7 @@ const size_t initial_field_count = 10;
  */
 void usage()
 {
-    fprintf(stderr, "usage:\n\ttsv tab-delimited-input > csv-output\n");
+    fprintf(stderr, "usage:\n\ttsv tab-delimited-input [+<start line>] > csv-output\n");
 }
 
 /**
@@ -121,14 +121,23 @@ int main(int argc, char** argv)
     size_t      bytes_read    = 0;
     size_t      field_len     = 0;
     size_t      trimmed_len   = 0;
+    size_t      start_line    = 1;
+    long        file_startpos = 0;
 
-    if (argc != 2) {
+    for (size_t i = 1; i < argc; i++) {
+        if (NULL == inFilename) {
+            inFilename = argv[i];
+        }
+        else if ('+' == argv[i][0]) {
+            start_line = atoi(argv[i]);
+        }
+    }
+
+    if (NULL == inFilename) {
         usage();
         retval = EX_USAGE;
         goto cleanup;
     }
-
-    inFilename = argv[1];
 
     if (0 != access(inFilename, R_OK)) {
         perror("Error reading input file");
@@ -151,17 +160,26 @@ int main(int argc, char** argv)
     }
 
     //
+    // Skip to the start line
+    //
+
+    for (size_t i = 1; i < start_line; i++) {
+        nextline(input);
+    }
+    file_startpos = ftell(input);
+
+    //
     // Figure out the field lengths.
     //
 
-    num_fields = tsv_get_field_lengths(input, field_lengths);
+    num_fields = tsv_get_field_lengths(input, field_lengths, file_startpos);
     
     DEBUG
     for (size_t i = 0; i < num_fields; i++) {
         fprintf(stderr, "field %zu: %zu\n", i, ((size_t*)field_lengths->buf)[i]);
     }
 
-    fseek(input, 0, SEEK_SET);
+    fseek(input, file_startpos, SEEK_SET);
 
     //
     // Read the fields.
