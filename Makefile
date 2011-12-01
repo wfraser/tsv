@@ -3,7 +3,7 @@ CFLAGS=-Wall -Werror -std=c99
 
 all: tsv
 
-tsv: main.o tsv.o growbuf.o
+tsv: main.o tsv.o growbuf.o csvformat.o
 
 clean:
 	rm -f tsv *.o

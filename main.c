@@ -15,6 +15,7 @@
 #include <sysexits.h>
 
 #include "growbuf.h"
+#include "csvformat.h"
 #include "tsv.h"
 
 const size_t initial_field_count = 10;
@@ -318,6 +319,7 @@ int main(int argc, char** argv)
             //
 
             trimmed_len = trimmed_length(buf, bytes_read);
+            buf[trimmed_len] = '\0';
 
             DEBUG fprintf(stderr, "trimmed_len(%zu)\n", trimmed_len);
 
@@ -325,16 +327,7 @@ int main(int argc, char** argv)
             // write the csv field
             //
 
-            fwrite("\"", 1, 1, output);
-            for (size_t j = 0; j < trimmed_len; j++) {
-                if (buf[j] == '"') {
-                    fwrite("\"\"", 1, 2, output);
-                }
-                else {
-                    fwrite(&(buf[j]), 1, 1, output);
-                }
-            }
-            fwrite("\"", 1, 1, output);
+            print_csv_field(buf, output);
 
             if (i == num_fields - 1) {
                 fwrite("\n", 1, 1, output);
