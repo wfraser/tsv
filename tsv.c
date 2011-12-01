@@ -145,17 +145,16 @@ size_t locate_field(FILE* input, size_t index, const growbuf* field_lengths)
                 DEBUG fprintf(stderr, "again, case 1\n");
 
                 again = true;
-                break;
             }
+            else {
+                c = fgetc(input);
+                if (c != EOF && c == ' ') {
+                    // didn't find start of new data, field must be longer
 
-            c = fgetc(input);
-            if (c != EOF && c == ' ') {
-                // didn't find start of new data, field must be longer
+                    DEBUG fprintf(stderr, "again, case 2\n");
 
-                DEBUG fprintf(stderr, "again, case 2\n");
-
-                again = true;
-                break;
+                    again = true;
+                }
             }
 
             if (again) {
