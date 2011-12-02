@@ -36,8 +36,7 @@ Even though some cells have internal white space, the columns are easily
 identified because they're the only places where the whitespace vertically
 lines up for the entirity of the table.
 
-Note that "tab-separated" doesn't mean with literal tab characters.
-(In fact, in the current version, using tabs will mess it up.)
+Note that "tab-separated" doesn't necessarily mean with literal tab characters. It can be space-separated as well.
 
 This program takes a file with TSV data, and outputs CSV data, which is more
 easily read by other programs.
