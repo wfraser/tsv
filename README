@@ -4,9 +4,19 @@ by William R. Fraser, 10/19/2011
 
 --
 
-Usage: tsv {TSV input file} [+{start line number}] > {csv output}
+Usage: tsv {TSV input file} [+{start line number}] [+notabs] [-t {tab width}] > {csv output}
 
-(note that the input file must be a seekable stream; /dev/stdin will NOT work)
+Use +{start-line} to indicate the line (1-based) on which TSV data starts.
+(default is 1)
+
+You can use +notabs if the TSV data contains no TAB characters (it uses all
+space characters for separation). This increases performance by reading directly
+from the input file, instead of converting to an all-spaces temp file first by
+default.
+(Note that with this option, the input must be a seekable stream. /dev/stdin
+will NOT work!)
+
+Use -t to specify the width of a tab. It defaults to 8.
 
 --
 

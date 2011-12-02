@@ -30,15 +30,17 @@ void usage()
     fprintf(stderr, "usage: tsv {tab-delimited-input} [+{start line}] [+notabs] [-t {tab-width}]\n"
                     "         > csv-output\n"
                     "\n"
-                    "use +{start-line} to indicate the line (1-based) on which TSV data starts.\n"
+                    "Use +{start-line} to indicate the line (1-based) on which TSV data starts.\n"
                     "(default is 1)\n"
                     "\n"
-                    "you can use +notabs if the TSV data contains no TAB characters (it uses all\n"
+                    "You can use +notabs if the TSV data contains no TAB characters (it uses all\n"
                     "space characters for separation). This increases performance by reading directly\n"
                     "from the input file, instead of converting to an all-spaces temp file first by\n"
                     "default.\n"
                     "(Note that with this option, the input must be a seekable stream. /dev/stdin\n"
-                    "will NOT work!)\n");
+                    "will NOT work!)\n"
+                    "\n"
+                    "Use -t to specify the width of a tab. It defaults to 8.\n");
 }
 
 /**
@@ -169,6 +171,12 @@ int main(int argc, char** argv)
             }
 
             i++;
+        }
+        else if (0 == strcmp("--help", argv[i])
+                || 0 == strcmp("-h", argv[i])) {
+            usage();
+            retval = EX_USAGE;
+            goto cleanup;
         }
     }
 
