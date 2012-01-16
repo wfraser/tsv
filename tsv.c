@@ -14,7 +14,8 @@
 
 const size_t initial_col_count = 10;
 
-#define DEBUG if (false)
+//#define DEBUG if (false)
+#define DEBUG
 
 static growbuf *line_lengths = NULL;
 
@@ -38,8 +39,9 @@ size_t tsv_get_field_lengths(FILE* input, growbuf* field_lengths, long file_star
     size_t num_fields = 0;
     size_t field_len  = 0;
 
-    fseek(input, file_startpos, SEEK_SET);
+    fseek(input, 0, SEEK_SET);
     get_line_lengths(input);
+    fseek(input, file_startpos, SEEK_SET);
 
     do {
         field_len = locate_field(input, num_fields++, field_lengths, file_startpos);
@@ -180,8 +182,6 @@ size_t locate_field(FILE* input, size_t index, const growbuf* field_lengths, lon
  */
 void get_line_lengths(FILE* input)
 {
-    long startpos = ftell(input);
-
     line_lengths = growbuf_create(10*sizeof(linelen_pair));
     
     size_t pos   = 0;
@@ -198,9 +198,6 @@ void get_line_lengths(FILE* input)
         }
         pos++;
     } while (c != EOF);
-
-    // reset to original position
-    fseek(input, startpos, SEEK_SET);
 }
 
 /**
