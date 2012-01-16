@@ -1,0 +1,16 @@
+Filesystem           1K-blocks      Used Available Use% Mounted on
+rootfs                 4128436    777008   3351428  19% /
+udev                     10240         0     10240   0% /dev
+/run                     10240       156     10084   2% /run
+/dev/mapper/root       4128436    777008   3351428  19% /
+none                   1032620         0   1032620   0% /dev/shm
+/dev/mapper/home      51411216  38356364  13054852  75% /home
+/dev/mapper/usr       10198524   6924364   3274160  68% /usr
+/dev/mapper/var       10452468   4703828   5748640  46% /var
+/dev/sda1               241116     19011    209657   9% /boot
+/dev/mapper/old-home 972774204 902321312  70452892  93% /home/old-home
+tmpfs                  1032620         0   1032620   0% /dev/shm
+tmpfs                  1032620       144   1032476   1% /tmp
+tmpfs                  1032620        96   1032524   1% /var/run
+tmpfs                  1032620         0   1032620   0% /var/lock
+tmpfs                  1032620         0   1032620   0% /var/tmp
