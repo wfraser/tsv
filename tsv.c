@@ -14,8 +14,7 @@
 
 const size_t initial_col_count = 10;
 
-//#define DEBUG if (false)
-#define DEBUG
+#define DEBUG if (false)
 
 static growbuf *line_lengths = NULL;
 
