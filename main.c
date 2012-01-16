@@ -97,24 +97,44 @@ cleanup:
 }
 
 /**
- * Find the trimmed length of a string.
+ * Return a copy of a string with the whitespace trimmed off the start and end.
  *
  * Args:
- *  string  - string to inspect
+ *  string  - string to trim
  *  length  - length of the string (not including any null terminator)
  *
  * Returns:
- *  Length of the string, not including any trailing whitespace.
+ *  Copy of the string, with no leading or trailing whitespace.
  */
-size_t trimmed_length(const char* string, size_t length)
+char* trim(const char* string, size_t length)
 {
-    for (size_t i = length - 1; i < length; i--) {
-        if (string[i] != ' ' && string[i] != '\n') {
-            return i + 1;
+    char* newbuf = (char*)malloc(length+1);
+    bool  start_found = false;
+
+    size_t newbuf_len = 0;
+
+    for (size_t i = 0; i < length; i++) {
+        if (start_found) {
+            newbuf[newbuf_len++] = string[i];
+        }
+        else if (string[i] != ' ') {
+            newbuf[newbuf_len++] = string[i];
+            start_found = true;
         }
     }
 
-    return 0;
+    newbuf[newbuf_len] = '\0';
+    
+    for (size_t i = newbuf_len - 1; i >= 0; i--) {
+        if (newbuf[i] == ' ') {
+            newbuf[i] = '\0';
+        }
+        else {
+            break;
+        }
+    }
+
+    return newbuf;
 }
 
 /**
@@ -138,7 +158,6 @@ int main(int argc, char** argv)
     char*       buf           = NULL;
     size_t      bytes_read    = 0;
     size_t      field_len     = 0;
-    size_t      trimmed_len   = 0;
     size_t      start_line    = 1;
     int         tab_width     = 8;
     long        file_startpos = 0;
@@ -298,7 +317,7 @@ int main(int argc, char** argv)
                 DEBUG fwrite(buf, 1, bytes_read, stderr);
             }
             else {
-                buf = (char*)malloc(field_len);
+                buf = (char*)malloc(field_len + 1);
                 if (NULL == buf) {
                     fprintf(stderr, "malloc failed\n");
                     retval = EX_OSERR;
@@ -323,19 +342,16 @@ int main(int argc, char** argv)
             }
 
             //
-            // trim any whitespace from the end of the field
+            // trim any whitespace from the field
             //
 
-            trimmed_len = trimmed_length(buf, bytes_read);
-            buf[trimmed_len] = '\0';
-
-            DEBUG fprintf(stderr, "trimmed_len(%zu)\n", trimmed_len);
+            char* trimmed = trim(buf, bytes_read);
 
             //
             // write the csv field
             //
 
-            print_csv_field(buf, output);
+            print_csv_field(trimmed, output);
 
             if (i == num_fields - 1) {
                 fwrite("\n", 1, 1, output);
@@ -345,6 +361,7 @@ int main(int argc, char** argv)
             }
 
             free(buf);
+            free(trimmed);
             buf = NULL;
 
         } // fields
