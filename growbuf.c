@@ -35,10 +35,15 @@ growbuf* growbuf_create(size_t initial_size)
         return NULL;
     }
 
-    gb->buf = (void*)malloc(initial_size);
-    if (NULL == gb->buf) {
-        free(gb);
-        return NULL;
+    if (initial_size > 0) {
+        gb->buf = (void*)malloc(initial_size);
+        if (NULL == gb->buf) {
+            free(gb);
+            return NULL;
+        }
+    }
+    else {
+        gb->buf = NULL;
     }
 
     gb->allocated_size = initial_size;
@@ -85,6 +90,15 @@ int growbuf_append(growbuf* gb, const void* buf, size_t len)
         return -EINVAL;
     }
 
+    if (NULL == gb->buf) {
+        gb->buf = malloc(len);
+        if (NULL == gb->buf) {
+            fprintf(stderr, "GROWBUF EXPANSION FAILED\n");
+            return -ENOMEM;
+        }
+        gb->allocated_size = len;
+    }
+
     if (gb->size + len > gb->allocated_size) {
 
         size_t newsize;
@@ -115,7 +129,7 @@ int growbuf_append(growbuf* gb, const void* buf, size_t len)
             
     }
 
-    memcpy(gb->buf + gb->size, buf, len);
+    memcpy((char*)gb->buf + gb->size, buf, len);
 
     gb->size += len;
 
