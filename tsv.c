@@ -59,13 +59,15 @@ size_t tsv_get_field_lengths(FILE* input, growbuf* field_lengths, long file_star
  *  linepos - column (0-based) to check
  *
  * Returns:
- *  true if all lines contain a space at this position, or are shorter and
- *      don't have a character at this position.
- *  false if any row contains a non-space character at this position.
+ *  0 if all lines contain spaces in the given column, or are shorter and
+ *      don't extend into the given column.
+ *  Otherwise, the number of columns to move right to get to a space in the
+ *      first row found to have a non-space character in the given column.
  */
-bool check_column(FILE* input, size_t linepos)
+size_t check_column(FILE* input, size_t linepos)
 {
-    long pos = ftell(input);
+    size_t hint = 0;
+    long   pos  = ftell(input);
 
     size_t line_no = 1;
     int c;
@@ -88,8 +90,16 @@ bool check_column(FILE* input, size_t linepos)
         }
     } while (c == ' ');
 
+    if (c != EOF) {
+        while ((char)c != ' ' && (char)c != '\n' && c != EOF) {
+            c = fgetc(input);
+            hint++;
+        }
+    }
+
     fseek(input, pos, SEEK_SET);
-    return (c == EOF);
+
+    return hint;
 }
 
 /**
@@ -127,35 +137,25 @@ size_t locate_field(FILE* input, size_t index, const growbuf* field_lengths, lon
     // find a field on the first line
     //
 
-    size_t field_len = 1;
-    bool in_whitespace = (fgetc(input) == ' ');
+    size_t field_len = 0;
     int c;
     do {
         c = fgetc(input);
         field_len++;
 
-        if (in_whitespace && (char)c != ' ') {
-            DEBUG fprintf(stderr, "white -> non transition at %lu\n", line_startpos + field_len);
-            if (check_column(input, line_startpos + field_len - 2)) {
-                field_len -= 1;
+        if ((char)c == ' ' && field_len > 1) {
+            DEBUG fprintf(stderr, "whitespace at %lu\n", line_startpos + field_len);
+
+            size_t hint = 0;
+            if (0 == (hint = check_column(input, line_startpos + field_len - 1))) {
                 DEBUG fprintf(stderr, "found a field of length %zu\n", field_len);
                 break;
             }
             else {
-                DEBUG fprintf(stderr, "nope\n");
+                DEBUG fprintf(stderr, "nope, seeking %zu\n", hint);
+                fseek(input, hint - 1, SEEK_CUR);
+                field_len += hint - 1;
             }
-            in_whitespace = false;
-        }
-        else if (!in_whitespace && (char)c == ' ') {
-            DEBUG fprintf(stderr, "non -> white transition at %lu\n", line_startpos + field_len);
-            if (check_column(input, line_startpos + field_len - 1)) {
-                DEBUG fprintf(stderr, "found a field of length %zu\n", field_len);
-                break;
-            }
-            else {
-                DEBUG fprintf(stderr, "nope\n");
-            }
-            in_whitespace = true;
         }
     } while (c != EOF && (char)c != '\n');
 
