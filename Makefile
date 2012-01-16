@@ -1,10 +1,21 @@
-#CFLAGS=-Wall -Werror -std=c99 -gstabs -O0
 CFLAGS=-Wall -Werror -std=c99
+CC=gcc
+
+OBJS=main.o tsv.o growbuf.o csvformat.o
 
 all: tsv
 
-tsv: main.o tsv.o growbuf.o csvformat.o
+.SUFFIXES:
+
+%.o: %.c
+	@echo "    CC  $<"
+	@$(CC) $(CFLAGS) -c -o $@ $<
+
+tsv: $(OBJS)
+	@echo "  LINK  $<"
+	@$(CC) $(LDFLAGS) -o $@ $(OBJS)
 
 clean:
-	rm -f tsv *.o
+	@echo " CLEAN"
+	@rm -f tsv *.o
 

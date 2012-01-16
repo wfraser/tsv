@@ -27,20 +27,19 @@ const size_t initial_field_count = 10;
  */
 void usage()
 {
-    fprintf(stderr, "usage: tsv {tab-delimited-input} [+{start line}] [+notabs] [-t {tab-width}]\n"
-                    "         > csv-output\n"
-                    "\n"
-                    "Use +{start-line} to indicate the line (1-based) on which TSV data starts.\n"
-                    "(default is 1)\n"
-                    "\n"
-                    "You can use +notabs if the TSV data contains no TAB characters (it uses all\n"
-                    "space characters for separation). This increases performance by reading directly\n"
-                    "from the input file, instead of converting to an all-spaces temp file first by\n"
-                    "default.\n"
-                    "(Note that with this option, the input must be a seekable stream. /dev/stdin\n"
-                    "will NOT work!)\n"
-                    "\n"
-                    "Use -t to specify the width of a tab. It defaults to 8.\n");
+    fprintf(stderr,
+"usage: tsv [options] [input-file]\n"
+"         > csv-output\n"
+"\n"
+"Options:\n"
+"  +<start line>    Line (1-based) to start on. Default = 1.\n"
+"  -t <tab width>   Specify the width of a tab character. Default = 8.\n"
+"  --notabs         Use this if the input data contains no tab characters.\n"
+"                   This increases performance by reading directly from the\n"
+"                   input file instead of converting all tabs to spaces into a\n"
+"                   temp file first. With this option, the input must be a\n"
+"                   seekable stream.\n"
+            );
 }
 
 /**
@@ -162,26 +161,38 @@ int main(int argc, char** argv)
     int         tab_width     = 8;
     long        file_startpos = 0;
     bool        convert_tabs  = true;
+    bool        parse_flags   = true;
 
     for (size_t i = 1; i < argc; i++) {
-        if (NULL == inFilename) {
-            inFilename = argv[i];
+        if (0 == strcmp("--", argv[i])) {
+            parse_flags = false;
         }
-        else if ('+' == argv[i][0]) {
-            if (0 == strcmp("+notabs", argv[i])) {
-                convert_tabs = false;
-            }
-            else {
-               start_line = atoi(argv[i]);
-            }
+        else if (parse_flags && 
+                    (0 == strcmp("--help", argv[i])
+                        || 0 == strcmp("-h", argv[i])))
+        {
+            usage();
+            retval = EX_USAGE;
+            goto cleanup;
         }
-        else if (0 == strcmp("-t", argv[i])) {
+        else if (parse_flags && argv[i][0] == '+') {
+            start_line = atoi(argv[i] + 1);
+        }
+        else if (parse_flags && 0 == strcmp("--notabs", argv[i])) {
+            convert_tabs = false;
+        }
+        else if (parse_flags && 
+                    (0 == strcmp("--tabwidth", argv[i])
+                        || 0 == strcmp("-t", argv[i])
+                    )
+                )
+        {
             if (i + 1 == argc) {
-                fprintf(stderr, "the -t flag requires an argument.\n");
+                fprintf(stderr, "the -t/--tabwidth flag requires an argument.\n");
                 retval = EX_USAGE;
                 goto cleanup;
             }
-            
+
             tab_width = atoi(argv[i+1]);
             if (tab_width < 1) {
                 fprintf(stderr, "invalid tab width.\n");
@@ -191,24 +202,18 @@ int main(int argc, char** argv)
 
             i++;
         }
-        else if (0 == strcmp("--help", argv[i])
-                || 0 == strcmp("-h", argv[i])) {
-            usage();
+        else if (NULL == inFilename) {
+            inFilename = argv[i];
+        }
+        else {
+            fprintf(stderr, "Error: extra unknown argument \"%s\"\n", argv[i]);
             retval = EX_USAGE;
             goto cleanup;
         }
     }
 
     if (NULL == inFilename) {
-        usage();
-        retval = EX_USAGE;
-        goto cleanup;
-    }
-
-    if (0 != access(inFilename, R_OK)) {
-        perror("Error reading input file");
-        retval = EX_NOINPUT;
-        goto cleanup;
+        inFilename = "/dev/stdin";
     }
 
     input = fopen(inFilename, "r");
@@ -279,8 +284,14 @@ int main(int argc, char** argv)
     // Skip to the start line
     //
 
-    for (size_t i = 1; i < start_line; i++) {
-        nextline(input);
+    for (size_t line_no = 1; line_no < start_line; /* nothing */) {
+        int c = fgetc(input);
+        if ((char)c == '\n') {
+            line_no++;
+        }
+        if (c == EOF) {
+            goto cleanup;
+        }
     }
     file_startpos = ftell(input);
 

@@ -218,6 +218,11 @@ size_t nextline(FILE* input)
 
     DEBUG fprintf(stderr, "position is %X\n", pos);
 
+    if (NULL == line_lengths) {
+        fprintf(stderr, "BUG: nextline(): line lengths are unset!\n");
+        return 0;
+    }
+
     for (size_t i = 0; i < growbuf_num_elems(line_lengths, linelen_pair); i++) {
         linelen_pair p = growbuf_index(line_lengths, i, linelen_pair);
         if (pos >= p.start && pos <= p.end) {
